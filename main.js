@@ -7,9 +7,6 @@ const md5 = crypto.createHash("md5");
 const log4js = require('log4js');
 const email = require('./libs/email');
 
-// 初始化内容
-const initString = "1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()_+-=`'\"\\/><.,?!:;[]{}| \r\n";
-
 // 日志记录
 if (!fs.existsSync(path.join(__dirname, `logs`))) {
     fs.mkdirSync(path.join(__dirname, `logs`));
@@ -46,39 +43,12 @@ const Q = new Queue(MaxQ, {
     }
 });
 
-// main
-let code = {};
-if (fs.existsSync(path.join(__dirname, `code.json`))) {
-    try {
-        code = JSON.parse(fs.readFileSync(path.join(__dirname, `code.json`)));
-    } catch (e) {
-        code = { code: [0], str: "1" };
-    }
-} else {
-    code = { code: [0], str: "1" };
-}
-
-// for (let c = 0; c < 100; c++) {
 setInterval(function () {
     Q.go(build);
     // console.log(JSON.stringify({ code: c, str: str }));
 }, 1);
 
-// setInterval(function () {
-
-//     let cpus = os.loadavg();
-//     if (cpus[0] < 8) {
-//         MaxQ += 100;
-//     } else {
-//         MaxQ -= 100;
-//     }
-//     console.log(`Now threads: ${MaxQ}. ${JSON.stringify(cpus)}`);
-//     Q.setMax(MaxQ);
-
-// }, 1);
-
-
-function run(file, code, cb = () => { }) {
+function run(file, code) {
     let c = path.join(__dirname, `code/${file}.c`);
     let exe = path.join(__dirname, `exe/${file}`);
     let run = spawn(exe);
@@ -86,7 +56,7 @@ function run(file, code, cb = () => { }) {
     let err = '';
 
     run.stdout.on('data', (data) => {
-        debug.wran(`${JSON.stringify(code)} say: ${data.toString()}`);
+        debug.wran(`[${code.length}] say: ${data.toString()}`);
         str += data.toString();
         email(`[${code.length}] say something in AI`, code, data.toString(), function () {
             console.log('[${file}] Send email is OK!');
@@ -109,50 +79,45 @@ function run(file, code, cb = () => { }) {
         } else if (str !== '') {
             debug.wran(`[${code.length}] exit; All say: ${data.toString()}`);
         }
-        cb(data);
     });
 }
 
 function build() {
     let str = getCode();
-    try {
-        let file = crypto.createHash('md5').update(str).digest('hex').toUpperCase(); //32位大写 
 
-        if (!fs.existsSync(require('path').join(__dirname, "code"))) {
-            fs.mkdir(require('path').join(__dirname, "code"));
-        }
-        fs.writeFile(path.join(__dirname, `code/${file}.c`), `#include <stdio.h>
+    let file = crypto.createHash('md5').update(str).digest('hex').toUpperCase(); //32位大写 
+
+    if (!fs.existsSync(require('path').join(__dirname, "code"))) {
+        fs.mkdir(require('path').join(__dirname, "code"));
+    }
+    fs.writeFile(path.join(__dirname, `code/${file}.c`), `#include <stdio.h>
 
 int main()
 {
     ${str}
     return 0;
 }`, (err) => {
-                if (!err) {
-                    if (!fs.existsSync(require('path').join(__dirname, "exe"))) {
-                        fs.mkdir(require('path').join(__dirname, "exe"));
-                    }
-                    exec(`gcc ${path.join(__dirname, `code/${file}.c`)} -o ${path.join(__dirname, `exe/${file}`)}`, (err, stdout, stderr) => {
-                        if (!err) {
-                            if (fs.existsSync(path.join(__dirname, `exe/${file}`))) {
-                                // console.log(`[${str.length}] ${file} Compile successfully!`);
-                                run(file, str, () => { });
-                            } else {
-                                // console.log(`[${str.length}] ${file} Compile failure!`);
-                                if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
-                            }
+            if (!err) {
+                if (!fs.existsSync(require('path').join(__dirname, "exe"))) {
+                    fs.mkdir(require('path').join(__dirname, "exe"));
+                }
+                exec(`gcc ${path.join(__dirname, `code/${file}.c`)} -o ${path.join(__dirname, `exe/${file}`)}`, (err, stdout, stderr) => {
+                    if (!err) {
+                        if (fs.existsSync(path.join(__dirname, `exe/${file}`))) {
+                            // console.log(`[${str.length}] ${file} Compile successfully!`);
+                            run(file, str);
                         } else {
-                            console.error(stderr);
-                            console.error(`[${str.length}] ${file} Compile error!`);
+                            // console.log(`[${str.length}] ${file} Compile failure!`);
                             if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
                         }
-                        // fs.writeFileSync(path.join(__dirname, `code.json`), JSON.stringify({ code: c, str: str }));
-                    });
-                }
-            });
-    } catch (e) {
-        console.log(e);
-    }
+                    } else {
+                        // console.error(stderr);
+                        console.error(`[${str.length}] ${file} Compile error!`);
+                        if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
+                    }
+                });
+            }
+        });
 }
 
 function getCode() {
