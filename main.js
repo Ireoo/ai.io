@@ -130,6 +130,10 @@ function getCode() {
         str += s;
         // console.log(str);
         if (/^#/.test(str)) str = '';
+        if (s === ';' && i === 1 && str === ';') {
+            i = 0;
+            str = '';
+        }
     }
 
     return str;
