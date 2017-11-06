@@ -27,104 +27,112 @@ log4js.configure({
 });
 debug = log4js.getLogger('debug');
 
-// 加载队列模块
-const Queue = require('promise-queue-plus');
-var MaxQ = 1000;
-const Q = new Queue(MaxQ, {
-    "retry": 0,
-    "retryIsJump": false,
-    "timeout": 0,
-    "event_succ": function (data) {
-        // console.log(data);
-        console.log(`queue-success: ${data.pid}; data: ${JSON.stringify(data.spawnargs)}`);
-    },
-    "event_err": function (err) {
-        console.error('queue-error:', err);
-    }
-});
+(async () => {
+    while (1) {
+        let str = getCode();
+        let file = crypto.createHash('md5').update(str).digest('hex').toUpperCase(); //32位大写 
+        if (await save(file, str)) {
+            try {
+                let result_build = await build(file);
+                if (result_build) {
+                    let result_run = await run(file);
+                }
+            } catch (e) {
 
-setInterval(function () {
-    Q.go(build);
-    // console.log(JSON.stringify({ code: c, str: str }));
-}, 1);
-
-function run(file, code) {
-    let c = path.join(__dirname, `code/${file}.c`);
-    let exe = path.join(__dirname, `exe/${file}`);
-    let run = spawn(exe);
-    let str = '';
-    let err = '';
-
-    run.stdout.on('data', (data) => {
-        debug.wran(`[${code.length}] say: ${data.toString()}`);
-        str += data.toString();
-        email(`[${code.length}] say something in AI`, code, data.toString(), function () {
-            console.log('[${file}] Send email is OK!');
-        });
-    });
-
-    run.stderr.on('data', (data) => {
-        console.error(`[${code.length}] error: ${data.toString()}`);
-        err += data.toString();
-        email(`[${code.length}] say something with error in AI`, code.str, data.toString(), function () {
-            console.log('[${file}] Send email is OK!');
-        });
-    });
-
-    run.on('close', (data) => {
-        console.log(`[${code.length}] child process exited with code ${data}`);
-        if (err !== '' || str === '') {
-            if (fs.existsSync(c)) fs.unlinkSync(c);
-            if (fs.existsSync(exe)) fs.unlinkSync(exe);
-        } else if (str !== '') {
-            debug.wran(`[${code.length}] exit; All say: ${data.toString()}`);
+            }
         }
+    }
+})();
+
+function run(file) {
+    return new Promise((res, req) => {
+        let c = path.join(__dirname, `code/${file}.c`);
+        let exe = path.join(__dirname, `exe/${file}`);
+        let run = spawn(exe);
+        let str = '';
+        let err = '';
+
+        run.stdout.on('data', (data) => {
+            debug.wran(`[${file}] say: ${data.toString()}`);
+            str += data.toString();
+            // email(`[${code.length}] say something in AI`, code, data.toString(), function () {
+            // console.log('[${file}] Send email is OK!');
+            // });
+        });
+
+        run.stderr.on('data', (data) => {
+            console.error(`[${file}] error: ${data.toString()}`);
+            err += data.toString();
+            // email(`[${code.length}] say something with error in AI`, code.str, data.toString(), function () {
+            //     console.log('[${file}] Send email is OK!');
+            // });
+        });
+
+        run.on('close', (data) => {
+            console.log(`[${file}] child process exited with code ${data}`);
+            if (err !== '' || str === '') {
+                if (fs.existsSync(c)) fs.unlinkSync(c);
+                if (fs.existsSync(exe)) fs.unlinkSync(exe);
+                res(false);
+            } else if (str !== '') {
+                debug.wran(`[${file}] exit; All say: ${data.toString()}`);
+                res({ success: str, error: err });
+            }
+        });
     });
 }
 
-function build() {
-    let str = getCode();
-
-    let file = crypto.createHash('md5').update(str).digest('hex').toUpperCase(); //32位大写 
-
-    if (!fs.existsSync(require('path').join(__dirname, "code"))) {
-        fs.mkdir(require('path').join(__dirname, "code"));
-    }
-    fs.writeFile(path.join(__dirname, `code/${file}.c`), `#include <stdio.h>
+function save(file, code) {
+    return new Promise((res, req) => {
+        if (!fs.existsSync(require('path').join(__dirname, "code"))) {
+            fs.mkdir(require('path').join(__dirname, "code"));
+        }
+        let str = `#include <stdio.h>
 
 int main()
 {
-    ${str}
+    ${code}
     return 0;
-}`, (err) => {
+}`;
+        fs.writeFile(path.join(__dirname, `code/${file}.c`), str, (err) => {
             if (!err) {
                 if (!fs.existsSync(require('path').join(__dirname, "exe"))) {
                     fs.mkdir(require('path').join(__dirname, "exe"));
                 }
-                exec(`gcc ${path.join(__dirname, `code/${file}.c`)} -o ${path.join(__dirname, `exe/${file}`)}`, (err, stdout, stderr) => {
-                    if (!err) {
-                        if (fs.existsSync(path.join(__dirname, `exe/${file}`))) {
-                            // console.log(`[${str.length}] ${file} Compile successfully!`);
-                            run(file, str);
-                        } else {
-                            // console.log(`[${str.length}] ${file} Compile failure!`);
-                            if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
-                        }
-                    } else {
-                        // console.error(stderr);
-                        console.error(`[${str.length}] ${file} Compile error!`);
-                        if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
-                    }
-                });
+                res(true);
+            } else {
+                res(false);
             }
         });
+    });
+}
+
+function build(file) {
+    return new Promise((res, req) => {
+        exec(`gcc ${path.join(__dirname, `code/${file}.c`)} -o ${path.join(__dirname, `exe/${file}`)}`, (err, stdout, stderr) => {
+            if (!err) {
+                if (fs.existsSync(path.join(__dirname, `exe/${file}`))) {
+                    // console.log(`[${file}] ${file} Compile successfully!`);
+                    // run(file, str);
+                    res(true);
+                } else {
+                    if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
+                    res(false);
+                    // console.log(`[${file}] ${file} Compile failure!`);
+                }
+            } else {
+                // console.error(stderr);
+                console.error(`[${file}] Compile error!`);
+                if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
+                req(stderr);
+            }
+        });
+    });
 }
 
 function getCode() {
     let s = '', str = '', i = 0;
-
     while (s !== ';' || (s === ';' && i !== 1)) {
-
         s = String.fromCharCode(Math.floor(Math.random() * 128));
         if (s === ';') i = Math.floor(Math.random() * 2);
         str += s;
@@ -135,6 +143,5 @@ function getCode() {
             str = '';
         }
     }
-
     return str;
 }
