@@ -8,15 +8,15 @@ const log4js = require('log4js');
 const email = require('./libs/email');
 
 // 日志记录
-if (!fs.existsSync(path.join(__dirname, `logs`))) {
-    fs.mkdirSync(path.join(__dirname, `logs`));
+if (!fs.existsSync(path.join(process.cwd(), `logs`))) {
+    fs.mkdirSync(path.join(process.cwd(), `logs`));
 }
 log4js.configure({
     appenders: [{
         type: 'console' // 控制台输出
     }, {
         type: 'dateFile', // 文件输出
-        filename: path.join(__dirname, `logs/`), // 需要手动创建此文件夹
+        filename: path.join(process.cwd(), `logs/`), // 需要手动创建此文件夹
         pattern: "yyyy-MM-dd.log",
         alwaysIncludePattern: true,
         maxLogSize: 1024,
@@ -46,8 +46,8 @@ debug = log4js.getLogger('debug');
 
 function run(file) {
     return new Promise((res, req) => {
-        let c = path.join(__dirname, `code/${file}.c`);
-        let exe = path.join(__dirname, `exe/${file}`);
+        let c = path.join(process.cwd(), `code/${file}.c`);
+        let exe = path.join(process.cwd(), `exe/${file}`);
         let run = spawn(exe);
         let str = '';
         let err = '';
@@ -84,8 +84,8 @@ function run(file) {
 
 function save(file, code) {
     return new Promise((res, req) => {
-        if (!fs.existsSync(require('path').join(__dirname, "code"))) {
-            fs.mkdir(require('path').join(__dirname, "code"));
+        if (!fs.existsSync(require('path').join(process.cwd(), "code"))) {
+            fs.mkdir(require('path').join(process.cwd(), "code"));
         }
         let str = `#include <stdio.h>
 
@@ -94,10 +94,10 @@ int main()
     ${code}
     return 0;
 }`;
-        fs.writeFile(path.join(__dirname, `code/${file}.c`), str, (err) => {
+        fs.writeFile(path.join(process.cwd(), `code/${file}.c`), str, (err) => {
             if (!err) {
-                if (!fs.existsSync(require('path').join(__dirname, "exe"))) {
-                    fs.mkdir(require('path').join(__dirname, "exe"));
+                if (!fs.existsSync(require('path').join(process.cwd(), "exe"))) {
+                    fs.mkdir(require('path').join(process.cwd(), "exe"));
                 }
                 res(true);
             } else {
@@ -109,21 +109,21 @@ int main()
 
 function build(file) {
     return new Promise((res, req) => {
-        exec(`gcc ${path.join(__dirname, `code/${file}.c`)} -o ${path.join(__dirname, `exe/${file}`)}`, (err, stdout, stderr) => {
+        exec(`gcc ${path.join(process.cwd(), `code/${file}.c`)} -o ${path.join(process.cwd(), `exe/${file}`)}`, (err, stdout, stderr) => {
             if (!err) {
-                if (fs.existsSync(path.join(__dirname, `exe/${file}`))) {
+                if (fs.existsSync(path.join(process.cwd(), `exe/${file}`))) {
                     // console.log(`[${file}] ${file} Compile successfully!`);
                     // run(file, str);
                     res(true);
                 } else {
-                    if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
+                    if (fs.existsSync(require('path').join(process.cwd(), `code/${file}.c`))) fs.unlinkSync(path.join(process.cwd(), `code/${file}.c`));
                     res(false);
                     // console.log(`[${file}] ${file} Compile failure!`);
                 }
             } else {
                 // console.error(stderr);
                 console.error(`[${file}] Compile error!`);
-                if (fs.existsSync(require('path').join(__dirname, `code/${file}.c`))) fs.unlinkSync(path.join(__dirname, `code/${file}.c`));
+                if (fs.existsSync(require('path').join(process.cwd(), `code/${file}.c`))) fs.unlinkSync(path.join(process.cwd(), `code/${file}.c`));
                 req(stderr);
             }
         });

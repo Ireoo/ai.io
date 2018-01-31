@@ -2,9 +2,13 @@
   "name": "AI",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "pkg . --out-dir build -d"
+  },
+  "bin": {
+    "mian": "main.js"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +20,9 @@
     "promise-queue-plus": "^1.1.0",
     "queue-fun": "^0.3.2",
     "single-line-log": "^1.1.2"
+  },
+  "devDependencies": {
+    "nexe": "^2.0.0-rc.22",
+    "pkg": "^4.3.0"
   }
 }
