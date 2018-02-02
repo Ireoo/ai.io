@@ -109,7 +109,10 @@ int main()
 
 function build(file) {
     return new Promise((res, req) => {
-        exec(`gcc ${path.join(process.cwd(), `code/${file}.c`)} -o ${path.join(process.cwd(), `exe/${file}`)}`, (err, stdout, stderr) => {
+	    // 计算与上一次时间差
+	    let startTime = (new Date()).getTime();
+        exec(`gcc -O0 ${path.join(process.cwd(), `code/${file}.c`)} -o ${path.join(process.cwd(), `exe/${file}`)}`, (err, stdout, stderr) => {
+            let timer = (new Date()).getTime() - startTime;
             if (!err) {
                 if (fs.existsSync(path.join(process.cwd(), `exe/${file}`))) {
                     // console.log(`[${file}] ${file} Compile successfully!`);
@@ -122,7 +125,7 @@ function build(file) {
                 }
             } else {
                 // console.error(stderr);
-                console.error(`[${file}] Compile error!`);
+                console.error(`[${file}][${timer}MS] ${err}`);
                 if (fs.existsSync(require('path').join(process.cwd(), `code/${file}.c`))) fs.unlinkSync(path.join(process.cwd(), `code/${file}.c`));
                 req(stderr);
             }
