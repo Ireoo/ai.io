@@ -5,7 +5,6 @@ const path = require('path');
 const crypto = require('crypto');
 const md5 = crypto.createHash("md5");
 const log4js = require('log4js');
-const email = require('./libs/email');
 
 // 日志记录
 if (!fs.existsSync(path.join(process.cwd(), `logs`))) {
@@ -125,7 +124,7 @@ function build(file) {
                 }
             } else {
                 // console.error(stderr);
-                console.error(`[${file}][${timer}MS] ${err}`);
+                console.error(`[${file}][${timer}MS] error!`);
                 if (fs.existsSync(require('path').join(process.cwd(), `code/${file}.c`))) fs.unlinkSync(path.join(process.cwd(), `code/${file}.c`));
                 req(stderr);
             }

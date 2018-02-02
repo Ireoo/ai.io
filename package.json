@@ -14,12 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "iapi": "^1.0.3",
-    "log4js": "0.6.38",
-    "progress": "^2.0.0",
-    "promise-queue-plus": "^1.1.0",
-    "queue-fun": "^0.3.2",
-    "single-line-log": "^1.1.2"
+    "log4js": "0.6.38"
   },
   "devDependencies": {
     "nexe": "^2.0.0-rc.22",
