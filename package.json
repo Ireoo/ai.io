@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "pkg . --out-dir build -d -b -t linux"
+    "build": "pkg . --out-dir build -d -b -t linux",
+    "start": "node main.js"
   },
   "bin": {
     "mian": "main.js"
