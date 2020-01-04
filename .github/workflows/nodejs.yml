@@ -22,4 +22,7 @@ jobs:
       run: npm i
         
     - name: run
-      run: npm start
+      run: |
+        mkdir code
+        mkdir exe
+        npm start
