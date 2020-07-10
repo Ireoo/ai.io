@@ -45,7 +45,7 @@ debug = log4js.getLogger("debug");
                 }
             }
         } catch (e) {
-            console.log(e);
+            //console.log(e);
         }
     }
 })();
