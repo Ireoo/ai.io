@@ -37,7 +37,7 @@ debug = log4js.getLogger("debug");
                 .update(str)
                 .digest("hex")
                 .toUpperCase(); //32位大写
-            console.log("[file] ->", file);
+            // console.log("[file] ->", file);
             if (await save(file, str)) {
                 let result_build = await build(file);
                 if (result_build) {
@@ -141,7 +141,7 @@ function build(file) {
           }
         } else {
           // console.error(stderr);
-          console.error(`[${file}][${timer}MS] error!`);
+          // console.error(`[${file}][${timer}MS] error!`);
           if (
             fs.existsSync(require("path").join(process.cwd(), `code/${file}.c`))
           )
